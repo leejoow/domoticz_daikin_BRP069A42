@@ -161,7 +161,12 @@ class BasePlugin:
             
             Devices[2].Update(nValue = 0, sValue = htemp)
             Devices[3].Update(nValue = 0, sValue = otemp)
-            
+        
+        #Force disconnect, in case the Daikin unit doesn't disconnect
+        if (Connection.Connected()):
+            Domoticz.Debug("Close connection")
+            Connection.Disconnect()
+        
     def onCommand(self, Unit, Command, Level, Hue):
         Domoticz.Debug("Command received U="+str(Unit)+" C="+str(Command)+" L= "+str(Level)+" H= "+str(Hue))
         
