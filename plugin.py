@@ -3,12 +3,25 @@
     <params>
         <param field="Address" label="IP Address" width="200px" required="true" default=""/>
         <param field="Port" label="Port" width="30px" required="true" default="80"/>
-        <param field="Mode1" label="Debug" width="75px">
+        <param field="Mode1" label="Update every x seconds" width="75px">
+            <options>
+                <option label="30" value="3" />
+                <option label="60" value="6" default="true" />
+                <option label="90" value="9" />
+                <option label="120" value="12" />
+                <option label="150" value="15" />
+                <option label="180" value="18" />
+                <option label="210" value="21" />
+                <option label="240" value="24" />
+            </options>
+        </param>
+        <param field="Mode2" label="Debug" width="75px">
             <options>
                 <option label="True" value="Debug"/>
                 <option label="False" value="Normal"  default="true" />
             </options>
         </param>
+        
     </params>
 </plugin>
 """
@@ -22,7 +35,7 @@ import http.client
 
 class BasePlugin:
     powerOn = 0
-    runCounter = 3
+    runCounter = 0
     httpConnSensorInfo = None
     httpConnControlInfo = None    
     httpConnSetControl = None  
@@ -31,7 +44,7 @@ class BasePlugin:
         return
 
     def onStart(self):
-        if Parameters["Mode1"] == "Debug":
+        if Parameters["Mode2"] == "Debug":
             Domoticz.Debugging(1)
             
         if (len(Devices) == 0):
@@ -68,6 +81,8 @@ class BasePlugin:
         
         self.httpConnSetControl = Domoticz.Connection(Name="Set Control", Transport="TCP/IP", Protocol="HTTP", Address=Parameters["Address"], Port=Parameters["Port"])
 
+        self.runCounter = int(Parameters["Mode1"])
+        
     def onStop(self):
         Domoticz.Log("Plugin is stopping.")
 
@@ -201,7 +216,7 @@ class BasePlugin:
         self.runCounter = self.runCounter - 1
         if self.runCounter <= 0:
             Domoticz.Debug("Poll unit")
-            self.runCounter = 3
+            self.runCounter = int(Parameters["Mode1"])
             
             if (self.httpConnSensorInfo.Connected() == False):
                 self.httpConnSensorInfo.Connect()
