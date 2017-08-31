@@ -134,36 +134,41 @@ class BasePlugin:
             
             self.powerOn = int(power)     
             
+            # Power
             if (power == "0"):
-                Devices[1].Update(nValue = 0, sValue ="0") 
+                if (Devices[1].nValue != 0):
+                    Devices[1].Update(nValue = 0, sValue ="0") 
             else: 
-                Devices[1].Update(nValue = 1, sValue ="100") 
-            
+                if (Devices[1].nValue != 1):
+                    Devices[1].Update(nValue = 1, sValue ="100") 
+             
+            # Mode
             if (mode == "0"):
-                Devices[4].Update(nValue = self.powerOn, sValue = "10") #Auto
+                sValueNew = "10" #Auto
             elif (mode == "2"):
-                Devices[4].Update(nValue = self.powerOn, sValue = "50") #Dry
+                sValueNew = "50" #Dry
             elif (mode == "3"):
-                Devices[4].Update(nValue = self.powerOn, sValue = "20") #Cool
+                sValueNew = "20" #Cool
             elif (mode == "4"):
-                Devices[4].Update(nValue = self.powerOn, sValue = "30") #Warm
-            
+                sValueNew = "30" #Warm
+         
+            if (Devices[4].nValue != self.powerOn or Devices[4].sValue != sValueNew):
+                Devices[4].Update(nValue = self.powerOn, sValue = sValueNew)
+         
+            # Fan rate
             if (f_rate == "A"):
-                Devices[5].Update(nValue = self.powerOn, sValue = "10") # Auto
+                sValueNew = "10" # Auto
             elif (f_rate == "B"):
-                Devices[5].Update(nValue = self.powerOn, sValue = "20") # Silent
-            elif (f_rate == "3"):
-                Devices[5].Update(nValue = self.powerOn, sValue = "30") # L1
-            elif (f_rate == "4"):
-                Devices[5].Update(nValue = self.powerOn, sValue = "40") # L2
-            elif (f_rate == "5"):
-                Devices[5].Update(nValue = self.powerOn, sValue = "50") # L3
-            elif (f_rate == "6"):
-                Devices[5].Update(nValue = self.powerOn, sValue = "60") # L4
-            elif (f_rate == "7"):
-                Devices[5].Update(nValue = self.powerOn, sValue = "70") # L5
-            
-            Devices[6].Update(nValue = self.powerOn, sValue = stemp)
+                sValueNew = "20" # Silent
+            else:
+                sValueNew = str(int(f_rate) * 10)
+                           
+            if (Devices[5].nValue != self.powerOn or Devices[5].sValue != sValueNew):
+                Devices[5].Update(nValue = self.powerOn, sValue = sValueNew)
+
+            # Setpoint temperature
+            if (Devices[6].nValue != self.powerOn or Devices[6].sValue != stemp):
+                Devices[6].Update(nValue = self.powerOn, sValue = stemp)
         
         elif (Connection == self.httpConnSensorInfo):        
             position = dataDecoded.find("htemp=")
