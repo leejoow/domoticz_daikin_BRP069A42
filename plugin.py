@@ -32,6 +32,7 @@ import time
 import re
 import base64
 import http.client
+from datetime import datetime 
 
 class BasePlugin:
     powerOn = 0
@@ -64,7 +65,7 @@ class BasePlugin:
                        "LevelOffHidden" : "true",
                        "SelectorStyle" : "1"}
             
-            Domoticz.Device(Name="Fan Rate", Unit=5, TypeName="Selector Switch", Image=16, Options=Options, Used=1).Create()
+            Domoticz.Device(Name="Fan Rate", Unit=5, TypeName="Selector Switch", Image=7, Options=Options, Used=1).Create()
             Domoticz.Device(Name="Temp TARGET", Unit=6, Type=242, Subtype=1, Image=16, Used=1).Create()
             
             Domoticz.Log("Device created.")
@@ -166,8 +167,11 @@ class BasePlugin:
             if (Devices[5].nValue != self.powerOn or Devices[5].sValue != sValueNew):
                 Devices[5].Update(nValue = self.powerOn, sValue = sValueNew)
 
-            # Setpoint temperature
-            if (Devices[6].nValue != self.powerOn or Devices[6].sValue != stemp):
+            lastUpdate = datetime.strptime(Devices[6].LastUpdate, "%Y-%m-%d %H:%M:%S")
+            delta = datetime.now() - lastUpdate
+                
+            # Setpoint temperature, update once per 30 minutes if no changes
+            if (Devices[6].nValue != self.powerOn or Devices[6].sValue != stemp or delta.total_seconds() > 1800):
                 Devices[6].Update(nValue = self.powerOn, sValue = stemp)
         
         elif (Connection == self.httpConnSensorInfo):        
