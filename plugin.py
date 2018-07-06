@@ -1,5 +1,9 @@
+# Basic Python Plugin Example
+#
+# Author: GizMoCuz
+#
 """
-<plugin key="BRP069A42" name="Daikin Airconditioning (BRP069A42)" author="leejoow" version="1.0.0" externallink="https://www.daikin.nl/nl_nl/products/BRP069A42.html">
+<plugin key="BRP069A42" name="Daikin Airconditioning (BRP069A42)" author="leejoow" version="1.1.0" externallink="https://www.daikin.nl/nl_nl/products/BRP069A42.html">
     <params>
         <param field="Address" label="IP Address" width="200px" required="true" default=""/>
         <param field="Port" label="Port" width="30px" required="true" default="80"/>
@@ -26,25 +30,23 @@
 </plugin>
 """
 import Domoticz
-import hmac
-import hashlib
-import time
-import re
-import base64
-import http.client
 from datetime import datetime 
 
 class BasePlugin:
+    enabled = True
     powerOn = 0
     runCounter = 0
     httpConnSensorInfo = None
-    httpConnControlInfo = None    
-    httpConnSetControl = None  
-    
+    httpConnControlInfo = None
+    httpConnSetControl = None
+
     def __init__(self):
+        #self.var = 123
         return
 
     def onStart(self):
+        Domoticz.Log("onStart called")
+
         if Parameters["Mode2"] == "Debug":
             Domoticz.Debugging(1)
             
@@ -69,7 +71,7 @@ class BasePlugin:
             Domoticz.Device(Name="Temp TARGET", Unit=6, Type=242, Subtype=1, Image=16, Used=1).Create()
             
             Domoticz.Log("Device created.")
-            
+        
         DumpConfigToLog()
         
         Domoticz.Heartbeat(10)
@@ -83,9 +85,8 @@ class BasePlugin:
         self.httpConnSetControl = Domoticz.Connection(Name="Set Control", Transport="TCP/IP", Protocol="HTTP", Address=Parameters["Address"], Port=Parameters["Port"])
 
         self.runCounter = int(Parameters["Mode1"])
-        
     def onStop(self):
-        Domoticz.Log("Plugin is stopping.")
+        Domoticz.Log("onStop called")
 
     def onConnect(self, Connection, Status, Description):
         if (Status == 0):
@@ -109,15 +110,17 @@ class BasePlugin:
                 Domoticz.Debug("Set connection created")
                 requestUrl = self.buildCommandString()
                 
-            Connection.Send(data, 'GET', requestUrl, headers)
+            Connection.Send({"Verb":"GET", "URL":requestUrl, "Headers": headers})
         else:
             Domoticz.Debug("Connection failed")
-     
-    def onMessage(self, Connection, Data, Status, Extra):
-        dataDecoded = Data.decode("utf-8")
+
+    def onMessage(self, Connection, Data):
+        Domoticz.Log("onMessage called")
+        
+        dataDecoded = Data["Data"].decode("utf-8", "ignore")
             
         Domoticz.Debug("Received data from connection " + Connection.Name + ": " + dataDecoded)
-            
+        
         if (Connection == self.httpConnControlInfo):       
             position = dataDecoded.find("pow=")
             power = dataDecoded[position + 4 : position + 5]
@@ -167,12 +170,12 @@ class BasePlugin:
             if (Devices[5].nValue != self.powerOn or Devices[5].sValue != sValueNew):
                 Devices[5].Update(nValue = self.powerOn, sValue = sValueNew)
 
-            lastUpdate = datetime.strptime(Devices[6].LastUpdate, "%Y-%m-%d %H:%M:%S")
-            delta = datetime.now() - lastUpdate
+            #lastUpdate = datetime.strptime(Devices[6].LastUpdate, "%Y-%m-%d %H:%M:%S")
+            #delta = datetime.now() - lastUpdate
                 
             # Setpoint temperature, update once per 30 minutes if no changes
-            if (Devices[6].nValue != self.powerOn or Devices[6].sValue != stemp or delta.total_seconds() > 1800):
-                Devices[6].Update(nValue = self.powerOn, sValue = stemp)
+            #if (Devices[6].nValue != self.powerOn or Devices[6].sValue != stemp or delta.total_seconds() > 1800):
+            #    Devices[6].Update(nValue = self.powerOn, sValue = stemp)
         
         elif (Connection == self.httpConnSensorInfo):        
             position = dataDecoded.find("htemp=")
@@ -190,7 +193,7 @@ class BasePlugin:
         if (Connection.Connected()):
             Domoticz.Debug("Close connection")
             Connection.Disconnect()
-        
+
     def onCommand(self, Unit, Command, Level, Hue):
         Domoticz.Debug("Command received U="+str(Unit)+" C="+str(Command)+" L= "+str(Level)+" H= "+str(Hue))
         
@@ -217,7 +220,10 @@ class BasePlugin:
             Devices[6].Update(nValue = self.powerOn, sValue = str(Level))
             
         self.httpConnSetControl.Connect()
-            
+        
+    def onNotification(self, Name, Subject, Text, Status, Priority, Sound, ImageFile):
+        Domoticz.Log("Notification: " + Name + "," + Subject + "," + Text + "," + Status + "," + str(Priority) + "," + Sound + "," + ImageFile)
+
     def onDisconnect(self, Connection):
         Domoticz.Debug("Connection " + Connection.Name + " closed.")
 
@@ -235,7 +241,6 @@ class BasePlugin:
             
         else:
             Domoticz.Debug("Polling unit in " + str(self.runCounter) + " heartbeats.")
-        
 
     def buildCommandString(self):
         #Minimal string: pow=1&mode=1&stemp=26&shum=0&f_rate=B&f_dir=3
@@ -270,7 +275,7 @@ class BasePlugin:
         requestUrl = requestUrl + "&stemp=" + Devices[6].sValue
     
         return requestUrl
-        
+            
 global _plugin
 _plugin = BasePlugin()
 
@@ -286,17 +291,17 @@ def onConnect(Connection, Status, Description):
     global _plugin
     _plugin.onConnect(Connection, Status, Description)
 
-def stringToBase64(s):
+def onMessage(Connection, Data):
     global _plugin
-    _plugin.stringToBase64(s)
-
-def onMessage(Connection, Data, Status, Extra):
-    global _plugin
-    _plugin.onMessage(Connection, Data, Status, Extra)
+    _plugin.onMessage(Connection, Data)
 
 def onCommand(Unit, Command, Level, Hue):
     global _plugin
     _plugin.onCommand(Unit, Command, Level, Hue)
+
+def onNotification(Name, Subject, Text, Status, Priority, Sound, ImageFile):
+    global _plugin
+    _plugin.onNotification(Name, Subject, Text, Status, Priority, Sound, ImageFile)
 
 def onDisconnect(Connection):
     global _plugin
@@ -306,8 +311,7 @@ def onHeartbeat():
     global _plugin
     _plugin.onHeartbeat()
 
-# Generic helper functions
-
+    # Generic helper functions
 def DumpConfigToLog():
     for x in Parameters:
         if Parameters[x] != "":
@@ -321,4 +325,3 @@ def DumpConfigToLog():
         Domoticz.Debug("Device sValue:   '" + Devices[x].sValue + "'")
         Domoticz.Debug("Device LastLevel: " + str(Devices[x].LastLevel))
     return
-
