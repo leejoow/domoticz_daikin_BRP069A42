@@ -155,6 +155,8 @@ class BasePlugin:
                 sValueNew = "20" #Cool
             elif (mode == "4"):
                 sValueNew = "30" #Warm
+            elif (mode == "6"):
+                sValueNew = "40" #Fan
          
             if (Devices[4].nValue != self.powerOn or Devices[4].sValue != sValueNew):
                 Devices[4].Update(nValue = self.powerOn, sValue = sValueNew)
@@ -169,13 +171,10 @@ class BasePlugin:
                            
             if (Devices[5].nValue != self.powerOn or Devices[5].sValue != sValueNew):
                 Devices[5].Update(nValue = self.powerOn, sValue = sValueNew)
-
-            #lastUpdate = datetime.strptime(Devices[6].LastUpdate, "%Y-%m-%d %H:%M:%S")
-            #delta = datetime.now() - lastUpdate
                 
-            # Setpoint temperature, update once per 30 minutes if no changes
-            #if (Devices[6].nValue != self.powerOn or Devices[6].sValue != stemp or delta.total_seconds() > 1800):
-            #    Devices[6].Update(nValue = self.powerOn, sValue = stemp)
+            # Setpoint temperature
+            if (Devices[6].nValue != self.powerOn or (Devices[6].sValue != stemp) and stemp != "--"):
+                Devices[6].Update(nValue = self.powerOn, sValue = stemp)
         
         elif (Connection == self.httpConnSensorInfo):        
             position = dataDecoded.find("htemp=")
@@ -260,6 +259,8 @@ class BasePlugin:
             requestUrl = requestUrl + "3"
         elif (Devices[4].sValue == "30"):
             requestUrl = requestUrl + "4"
+        elif (Devices[4].sValue == "40"):
+            requestUrl = requestUrl + "6"
         elif (Devices[4].sValue == "50"):
             requestUrl = requestUrl + "2"
                 
